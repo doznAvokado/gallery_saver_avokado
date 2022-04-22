@@ -40,20 +40,39 @@ public class SwiftGallerySaverPlugin: NSObject, FlutterPlugin {
         let args = call.arguments as? Dictionary<String, Any>
         let path = args![self.path] as! String
         let albumName = args![self.albumName] as? String
-        
-        let status = PHPhotoLibrary.authorizationStatus()
-        if status == .notDetermined {
-            PHPhotoLibrary.requestAuthorization({status in
-                if status == .authorized{
-                    self._saveMediaToAlbum(path, mediaType, albumName, result)
-                } else {
-                    result(false);
+
+        if #available(iOS 14, *) {
+            let status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
+            if status == .notDetermined{
+                 PHPhotoLibrary.requestAuthorization(for: .addOnly){ authorizationStatus in
+                    switch authorizationStatus{
+                    case .authorized:
+                        self._saveMediaToAlbum(path, mediaType, albumName, result)
+                    default:
+                        result(false);
+                    }
                 }
-            })
-        } else if status == .authorized {
-            self._saveMediaToAlbum(path, mediaType, albumName, result)
+            }else if status == .authorized{
+                self._saveMediaToAlbum(path, mediaType, albumName, result)
+            }else{
+                result(false)
+            }
         } else {
-            result(false);
+            let status = PHPhotoLibrary.authorizationStatus()
+            if status == .notDetermined{
+                 PHPhotoLibrary.requestAuthorization{ authorizationStatus in
+                    switch authorizationStatus{
+                    case .authorized:
+                        self._saveMediaToAlbum(path, mediaType, albumName, result)
+                    default:
+                        result(false);
+                    }
+                }
+            }else if status == .authorized{
+                self._saveMediaToAlbum(path, mediaType, albumName, result)
+            }else{
+                result(false)
+            }
         }
     }
     
